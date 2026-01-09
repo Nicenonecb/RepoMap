@@ -1,0 +1,11 @@
+{
+  "name": "repomap",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace @repomap/cli run dev",
+    "build": "npm --workspace @repomap/cli run build"
+  }
+}
