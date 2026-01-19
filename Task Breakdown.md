@@ -128,6 +128,14 @@ repomap/
 - 混合语言仓库
 - 不规则目录结构
 
+**可优化点（后续）**
+
+- workspace 配置解析更完整（turbo.json、project.json 等），支持完整 glob/negate 语义与 brace 展开
+- 模块命名读取更多来源（go.mod 的 module 名、pyproject 的 project.name），并支持自定义覆盖
+- 语言识别引入文件体积权重与忽略生成目录规则，提高 mixed/unknown 判定准确性
+- 模块边界可配置（深度上限、显式 include/exclude、嵌套模块优先级）
+- 超大仓库优化为流式单遍分配与更细粒度缓存
+
 ------
 
 ### T1.3 模块关键词抽取（Keyword Extractor）
@@ -310,4 +318,3 @@ repomap query "refresh token"
 
 > RepoMap 的第一目标不是“聪明”，而是“稳定 + 可复现”。**
 > 一旦 AI 信任它的结构输出，你这个工具就会变成“基础设施”。
-
