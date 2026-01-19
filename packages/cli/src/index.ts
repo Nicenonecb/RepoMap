@@ -1,19 +1,27 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Command } from "commander";
 import {
   buildModuleIndex,
+  buildFileIndex,
   collectFiles,
   createMeta,
   detectEntries,
   detectModules,
+  diffFileIndex,
   extractModuleKeywords,
   buildSummary
 } from "@repomap/core";
-import type { EntryMap, ModuleIndex, RepoMapMeta } from "@repomap/core";
+import type {
+  EntryMap,
+  FileChangeSet,
+  FileIndex,
+  ModuleIndex,
+  RepoMapMeta
+} from "@repomap/core";
 const VERSION = "0.1.0";
 
 const program = new Command();
@@ -66,6 +74,28 @@ const writeEntryMapFile = (outDir: string, entryMap: EntryMap) => {
   writeFileSync(entryMapPath, `${JSON.stringify(entryMap, null, 2)}\n`);
 };
 
+const writeFileIndexFile = (outDir: string, fileIndex: FileIndex) => {
+  mkdirSync(outDir, { recursive: true });
+  const fileIndexPath = path.join(outDir, "file_index.json");
+  writeFileSync(fileIndexPath, `${JSON.stringify(fileIndex, null, 2)}\n`);
+};
+
+const writeFileChangesFile = (outDir: string, changes: FileChangeSet) => {
+  mkdirSync(outDir, { recursive: true });
+  const changesPath = path.join(outDir, "file_changes.json");
+  writeFileSync(changesPath, `${JSON.stringify(changes, null, 2)}\n`);
+};
+
+const readFileIndexFile = (outDir: string) => {
+  const fileIndexPath = path.join(outDir, "file_index.json");
+  try {
+    const raw = readFileSync(fileIndexPath, "utf8");
+    return JSON.parse(raw) as FileIndex;
+  } catch {
+    return null;
+  }
+};
+
 const writeSummaryFile = (outDir: string, summary: string) => {
   mkdirSync(outDir, { recursive: true });
   const summaryPath = path.join(outDir, "summary.md");
@@ -116,6 +146,11 @@ program
       ignoreGlobs: Array.isArray(options.ignore) ? options.ignore : [],
       pathStyle: "posix"
     });
+    const fileIndex = await buildFileIndex({
+      repoRoot,
+      files,
+      hashAlgorithm: meta.hashAlgorithm
+    });
     const modules = await detectModules({ repoRoot, files });
     const keywords = await extractModuleKeywords({ repoRoot, files, modules });
     const moduleIndex = buildModuleIndex(modules, keywords);
@@ -123,6 +158,7 @@ program
     const summary = buildSummary({ repoRoot, moduleIndex, entryMap });
 
     writeMetaFile(outDir, meta);
+    writeFileIndexFile(outDir, fileIndex);
     writeModuleIndexFile(outDir, moduleIndex);
     writeEntryMapFile(outDir, entryMap);
     writeSummaryFile(outDir, summary);
@@ -132,8 +168,40 @@ program
 program
   .command("update")
   .description("Update an existing RepoMap output")
-  .action((_options, command) => {
-    logCommand(command, "update");
+  .action(async (_options, command) => {
+    const cwd = process.cwd();
+    const repoRoot = readGitRoot(cwd) ?? cwd;
+    const options = command.optsWithGlobals();
+    const outDir = path.resolve(repoRoot, String(options.out ?? ".repomap"));
+
+    const previousIndex = readFileIndexFile(outDir);
+    const files = await collectFiles({
+      root: ".",
+      cwd: repoRoot,
+      ignoreGlobs: Array.isArray(options.ignore) ? options.ignore : [],
+      pathStyle: "posix"
+    });
+    const currentIndex = await buildFileIndex({ repoRoot, files });
+
+    const changes = previousIndex
+      ? diffFileIndex(previousIndex, currentIndex)
+      : {
+          baseGeneratedAt: null,
+          currentGeneratedAt: currentIndex.generatedAt,
+          hashAlgorithm: currentIndex.hashAlgorithm,
+          added: currentIndex.files.map((entry) => entry.path),
+          modified: [],
+          deleted: []
+        };
+
+    writeFileIndexFile(outDir, currentIndex);
+    writeFileChangesFile(outDir, changes);
+
+    logCommand(command, "update", {
+      added: changes.added.length,
+      modified: changes.modified.length,
+      deleted: changes.deleted.length
+    });
   });
 
 program
