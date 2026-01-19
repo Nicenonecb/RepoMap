@@ -8,10 +8,11 @@ import {
   buildModuleIndex,
   collectFiles,
   createMeta,
+  detectEntries,
   detectModules,
   extractModuleKeywords
 } from "@repomap/core";
-import type { ModuleIndex, RepoMapMeta } from "@repomap/core";
+import type { EntryMap, ModuleIndex, RepoMapMeta } from "@repomap/core";
 const VERSION = "0.1.0";
 
 const program = new Command();
@@ -56,6 +57,12 @@ const writeModuleIndexFile = (outDir: string, moduleIndex: ModuleIndex) => {
   mkdirSync(outDir, { recursive: true });
   const moduleIndexPath = path.join(outDir, "module_index.json");
   writeFileSync(moduleIndexPath, `${JSON.stringify(moduleIndex, null, 2)}\n`);
+};
+
+const writeEntryMapFile = (outDir: string, entryMap: EntryMap) => {
+  mkdirSync(outDir, { recursive: true });
+  const entryMapPath = path.join(outDir, "entry_map.json");
+  writeFileSync(entryMapPath, `${JSON.stringify(entryMap, null, 2)}\n`);
 };
 
 const logCommand = <T extends object>(
@@ -105,9 +112,11 @@ program
     const modules = await detectModules({ repoRoot, files });
     const keywords = await extractModuleKeywords({ repoRoot, files, modules });
     const moduleIndex = buildModuleIndex(modules, keywords);
+    const entryMap = detectEntries({ files, modules });
 
     writeMetaFile(outDir, meta);
     writeModuleIndexFile(outDir, moduleIndex);
+    writeEntryMapFile(outDir, entryMap);
     logCommand(command, "build", meta);
   });
 
