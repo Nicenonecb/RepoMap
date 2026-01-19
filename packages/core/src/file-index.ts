@@ -13,14 +13,11 @@ export interface FileIndexEntry {
 
 export interface FileIndex {
   repoRoot: string;
-  generatedAt: string;
   hashAlgorithm: HashAlgorithm;
   files: FileIndexEntry[];
 }
 
 export interface FileChangeSet {
-  baseGeneratedAt: string | null;
-  currentGeneratedAt: string;
   hashAlgorithm: HashAlgorithm;
   added: string[];
   modified: string[];
@@ -145,7 +142,6 @@ export const buildFileIndex = async (
 
   return {
     repoRoot,
-    generatedAt: new Date().toISOString(),
     hashAlgorithm,
     files: entries
   };
@@ -196,8 +192,6 @@ export const diffFileIndex = (
   deleted.sort(compareNames);
 
   return {
-    baseGeneratedAt: previous.generatedAt ?? null,
-    currentGeneratedAt: current.generatedAt,
     hashAlgorithm: current.hashAlgorithm,
     added,
     modified,

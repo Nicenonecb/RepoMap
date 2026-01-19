@@ -274,6 +274,13 @@ program
     const outDir = path.resolve(repoRoot, String(options.out ?? ".repomap"));
 
     const previousIndex = readFileIndexFile(outDir);
+    const hashAlgorithm = previousIndex?.hashAlgorithm ?? "sha256";
+    const meta = createMeta({
+      toolVersion: VERSION,
+      repoRoot,
+      gitCommit: readGitCommit(repoRoot),
+      hashAlgorithm
+    });
     const previousModuleIndex = readModuleIndexFile(outDir);
     const files = await collectFiles({
       root: ".",
@@ -284,14 +291,12 @@ program
     const currentIndex = await buildFileIndex({
       repoRoot,
       files,
-      hashAlgorithm: previousIndex?.hashAlgorithm
+      hashAlgorithm
     });
 
     const changes = previousIndex
       ? diffFileIndex(previousIndex, currentIndex)
       : {
-          baseGeneratedAt: null,
-          currentGeneratedAt: currentIndex.generatedAt,
           hashAlgorithm: currentIndex.hashAlgorithm,
           added: currentIndex.files.map((entry) => entry.path),
           modified: [],
@@ -396,6 +401,7 @@ program
       summary = buildSummary({ repoRoot, moduleIndex, entryMap });
     }
 
+    writeMetaFile(outDir, meta);
     writeFileIndexFile(outDir, currentIndex);
     writeFileChangesFile(outDir, changes);
     if (moduleIndex) writeModuleIndexFile(outDir, moduleIndex);

@@ -24,7 +24,10 @@ export const buildModuleIndex = (
   }
 
   const entries = modules.map((module) => ({
-    ...module,
+    name: module.name,
+    path: module.path,
+    language: module.language,
+    fileCount: module.fileCount,
     keywords: keywordMap.get(module.path) ?? []
   }));
 
