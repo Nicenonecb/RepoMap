@@ -43,7 +43,7 @@ repomap/
 
 **验收标准**
 
-- 能 `npm run dev` 启动 CLI
+- 能 `pnpm dev` 启动 CLI
 - 能输出 help 信息
 
 ------

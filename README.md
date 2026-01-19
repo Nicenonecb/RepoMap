@@ -11,8 +11,8 @@ M0 scaffold is in place: monorepo layout, CLI commands, and meta schema.
 ## Development
 
 ```bash
-npm install
-npm run dev -- --help
+pnpm install
+pnpm dev -- --help
 ```
 
 ## CLI Commands

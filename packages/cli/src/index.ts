@@ -4,8 +4,14 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Command } from "commander";
-import { createMeta } from "@repomap/core";
-import type { RepoMapMeta } from "@repomap/core";
+import {
+  buildModuleIndex,
+  collectFiles,
+  createMeta,
+  detectModules,
+  extractModuleKeywords
+} from "@repomap/core";
+import type { ModuleIndex, RepoMapMeta } from "@repomap/core";
 const VERSION = "0.1.0";
 
 const program = new Command();
@@ -46,6 +52,12 @@ const writeMetaFile = (outDir: string, meta: RepoMapMeta) => {
   writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`);
 };
 
+const writeModuleIndexFile = (outDir: string, moduleIndex: ModuleIndex) => {
+  mkdirSync(outDir, { recursive: true });
+  const moduleIndexPath = path.join(outDir, "module_index.json");
+  writeFileSync(moduleIndexPath, `${JSON.stringify(moduleIndex, null, 2)}\n`);
+};
+
 const logCommand = <T extends object>(
   command: Command,
   name: string,
@@ -73,7 +85,7 @@ program.configureHelp({ showGlobalOptions: true });
 program
   .command("build")
   .description("Build a RepoMap for the current repository")
-  .action((_options, command) => {
+  .action(async (_options, command) => {
     const cwd = process.cwd();
     const repoRoot = readGitRoot(cwd) ?? cwd;
     const options = command.optsWithGlobals();
@@ -84,7 +96,18 @@ program
       gitCommit: readGitCommit(repoRoot)
     });
 
+    const files = await collectFiles({
+      root: ".",
+      cwd: repoRoot,
+      ignoreGlobs: Array.isArray(options.ignore) ? options.ignore : [],
+      pathStyle: "posix"
+    });
+    const modules = await detectModules({ repoRoot, files });
+    const keywords = await extractModuleKeywords({ repoRoot, files, modules });
+    const moduleIndex = buildModuleIndex(modules, keywords);
+
     writeMetaFile(outDir, meta);
+    writeModuleIndexFile(outDir, moduleIndex);
     logCommand(command, "build", meta);
   });
 

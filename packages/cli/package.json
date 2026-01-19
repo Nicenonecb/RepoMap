@@ -6,9 +6,9 @@
     "repomap": "dist/index.js"
   },
   "scripts": {
-    "predev": "npm --workspace @repomap/core run build",
+    "predev": "pnpm --filter @repomap/core build",
     "dev": "tsx src/index.ts",
-    "prebuild": "npm --workspace @repomap/core run build",
+    "prebuild": "pnpm --filter @repomap/core build",
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {

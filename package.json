@@ -5,7 +5,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm --workspace @repomap/cli run dev",
-    "build": "npm --workspace @repomap/cli run build"
+    "dev": "pnpm --filter @repomap/cli dev",
+    "build": "pnpm --filter @repomap/cli build"
   }
 }
