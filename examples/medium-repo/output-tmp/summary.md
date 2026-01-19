@@ -12,6 +12,7 @@
 ## Common Entries
 - web-route: src/auth/routes.ts
 - controller: src/auth/controller.ts
+- service: src/auth/service.ts
 - cli-entry: src/cli.ts
 - worker: (none)
 - job: src/jobs/cleanup.ts
@@ -20,5 +21,6 @@
 ## Suggested Reading Order
 - Start with web-route: src/auth/routes.ts
 - Start with controller: src/auth/controller.ts
+- Start with service: src/auth/service.ts
 - Start with cli-entry: src/cli.ts
 - Start with job: src/jobs/cleanup.ts

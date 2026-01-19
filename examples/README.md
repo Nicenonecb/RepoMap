@@ -24,9 +24,17 @@ machine-specific paths and mtimes.
 ```bash
 cd examples/medium-repo
 GIT_DIR=/dev/null GIT_CEILING_DIRECTORIES="$(pwd)" \
-  node ../../packages/cli/dist/index.js build --out output
+  node ../../packages/cli/dist/index.js build --out output-tmp \
+  --ignore "output/**" --ignore "output-tmp/**"
+diff -u output/module_index.json output-tmp/module_index.json
+diff -u output/entry_map.json output-tmp/entry_map.json
+diff -u output/summary.md output-tmp/summary.md
 
 cd ../monorepo
 GIT_DIR=/dev/null GIT_CEILING_DIRECTORIES="$(pwd)" \
-  node ../../packages/cli/dist/index.js build --out output
+  node ../../packages/cli/dist/index.js build --out output-tmp \
+  --ignore "output/**" --ignore "output-tmp/**"
+diff -u output/module_index.json output-tmp/module_index.json
+diff -u output/entry_map.json output-tmp/entry_map.json
+diff -u output/summary.md output-tmp/summary.md
 ```

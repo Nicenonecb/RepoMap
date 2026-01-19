@@ -4,6 +4,7 @@ import type { ModuleInfo } from "./module-detector.js";
 export type EntryType =
   | "web-route"
   | "controller"
+  | "service"
   | "cli-entry"
   | "job"
   | "worker"
@@ -56,6 +57,7 @@ const WEB_ROUTE_SEGMENTS = new Set([
 ]);
 
 const CONTROLLER_SEGMENTS = new Set(["controller", "controllers"]);
+const SERVICE_SEGMENTS = new Set(["service", "services"]);
 const CLI_SEGMENTS = new Set(["cli", "bin", "cmd", "command", "commands"]);
 const WORKER_SEGMENTS = new Set(["worker", "workers", "queue", "queues"]);
 const JOB_SEGMENTS = new Set(["job", "jobs", "cron", "scheduler", "schedule", "task", "tasks"]);
@@ -77,6 +79,7 @@ const TEST_SEGMENTS = new Set([
 const ENTRY_TYPE_ORDER: EntryType[] = [
   "web-route",
   "controller",
+  "service",
   "cli-entry",
   "worker",
   "job",
@@ -160,6 +163,10 @@ const detectEntryType = (filePath: string): EntryType | null => {
   const controllerMatch =
     hasSegment(segments, CONTROLLER_SEGMENTS) || baseHas("controller");
   if (controllerMatch) return "controller";
+
+  const serviceMatch =
+    hasSegment(segments, SERVICE_SEGMENTS) || baseHas("service");
+  if (serviceMatch) return "service";
 
   const cliMatch =
     hasSegment(segments, CLI_SEGMENTS) ||

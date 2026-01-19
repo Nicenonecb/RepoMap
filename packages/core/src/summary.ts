@@ -20,6 +20,7 @@ const DEFAULT_MAX_KEYWORDS = 5;
 const ENTRY_TYPE_ORDER: EntryType[] = [
   "web-route",
   "controller",
+  "service",
   "cli-entry",
   "worker",
   "job",
@@ -110,6 +111,7 @@ const buildReadingOrder = (
   const order: EntryType[] = [
     "web-route",
     "controller",
+    "service",
     "cli-entry",
     "worker",
     "job"

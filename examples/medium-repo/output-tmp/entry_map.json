@@ -12,6 +12,10 @@
           "type": "controller"
         },
         {
+          "path": "src/auth/service.ts",
+          "type": "service"
+        },
+        {
           "path": "src/cli.ts",
           "type": "cli-entry"
         },
