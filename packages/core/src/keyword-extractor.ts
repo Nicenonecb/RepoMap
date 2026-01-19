@@ -11,6 +11,7 @@ export interface KeywordExtractorOptions {
   repoRoot: string;
   files: Iterable<string>;
   modules: ModuleInfo[];
+  includeModules?: string[] | Set<string>;
   minKeywords?: number;
   maxKeywords?: number;
   maxContentBytes?: number;
@@ -387,6 +388,11 @@ export async function extractModuleKeywords(
   options: KeywordExtractorOptions
 ): Promise<ModuleKeywords[]> {
   const repoRoot = path.resolve(options.repoRoot);
+  const includeSet = options.includeModules
+    ? new Set(
+        Array.from(options.includeModules, (value) => normalizePosixPath(value))
+      )
+    : null;
   const minKeywords = options.minKeywords ?? DEFAULT_MIN_KEYWORDS;
   const maxKeywords = options.maxKeywords ?? DEFAULT_MAX_KEYWORDS;
   const maxContentBytes = options.maxContentBytes ?? DEFAULT_MAX_CONTENT_BYTES;
@@ -412,6 +418,7 @@ export async function extractModuleKeywords(
   const dirCache = new Map<string, string>();
 
   const ensureModule = (modulePath: string) => {
+    if (includeSet && !includeSet.has(modulePath)) return;
     if (!moduleFileMap.has(modulePath)) moduleFileMap.set(modulePath, []);
     if (!keywordMap.has(modulePath)) keywordMap.set(modulePath, new Map());
   };
@@ -419,6 +426,7 @@ export async function extractModuleKeywords(
   for (const filePath of files) {
     if (!filePath || filePath === ".") continue;
     const moduleRoot = resolveModuleRoot(filePath, moduleSet, dirCache);
+    if (includeSet && !includeSet.has(moduleRoot)) continue;
     ensureModule(moduleRoot);
     moduleFileMap.get(moduleRoot)?.push(filePath);
 
@@ -428,12 +436,15 @@ export async function extractModuleKeywords(
     }
   }
 
-  for (const modulePath of modulePaths) {
+  const targetModules = includeSet
+    ? Array.from(includeSet)
+    : modulePaths;
+  for (const modulePath of targetModules) {
     ensureModule(modulePath);
   }
 
   const results: ModuleKeywords[] = [];
-  const sortedModulePaths = Array.from(moduleSet).sort(compareNames);
+  const sortedModulePaths = targetModules.slice().sort(compareNames);
 
   for (const modulePath of sortedModulePaths) {
     const counts = keywordMap.get(modulePath);

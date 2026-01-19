@@ -19,10 +19,22 @@ import type {
   EntryMap,
   FileChangeSet,
   FileIndex,
+  ModuleInfo,
   ModuleIndex,
+  ModuleKeywords,
   RepoMapMeta
 } from "@repomap/core";
 const VERSION = "0.1.0";
+
+const LARGE_CHANGE_RATIO = 0.25;
+const LARGE_CHANGE_COUNT = 5000;
+const WORKSPACE_CONFIG_FILES = new Set([
+  "pnpm-workspace.yaml",
+  "lerna.json",
+  "rush.json",
+  "nx.json",
+  "workspace.json"
+]);
 
 const program = new Command();
 
@@ -96,10 +108,97 @@ const readFileIndexFile = (outDir: string) => {
   }
 };
 
+const readModuleIndexFile = (outDir: string) => {
+  const moduleIndexPath = path.join(outDir, "module_index.json");
+  try {
+    const raw = readFileSync(moduleIndexPath, "utf8");
+    return JSON.parse(raw) as ModuleIndex;
+  } catch {
+    return null;
+  }
+};
+
 const writeSummaryFile = (outDir: string, summary: string) => {
   mkdirSync(outDir, { recursive: true });
   const summaryPath = path.join(outDir, "summary.md");
   writeFileSync(summaryPath, summary);
+};
+
+const compareNames = (left: string, right: string) => {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+};
+
+const normalizePosixPath = (value: string) => {
+  let normalized = value.replace(/\\/g, "/").trim();
+  if (normalized.startsWith("./")) normalized = normalized.slice(2);
+  while (normalized.endsWith("/") && normalized.length > 1) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized.length === 0 ? "." : normalized;
+};
+
+const resolveModuleRoot = (
+  filePath: string,
+  moduleRoots: Set<string>,
+  cache: Map<string, string>
+) => {
+  let dir = path.posix.dirname(filePath);
+  if (dir === ".") dir = ".";
+  const visited: string[] = [];
+  while (true) {
+    const cached = cache.get(dir);
+    if (cached) {
+      for (const entry of visited) cache.set(entry, cached);
+      return cached;
+    }
+    visited.push(dir);
+    if (moduleRoots.has(dir)) {
+      for (const entry of visited) cache.set(entry, dir);
+      return dir;
+    }
+    if (dir === ".") {
+      for (const entry of visited) cache.set(entry, ".");
+      return ".";
+    }
+    dir = path.posix.dirname(dir);
+  }
+};
+
+const isWorkspaceConfigChange = (filePath: string) => {
+  const normalized = normalizePosixPath(filePath);
+  if (normalized === "package.json") return true;
+  if (!normalized.includes("/")) {
+    return WORKSPACE_CONFIG_FILES.has(normalized);
+  }
+  return false;
+};
+
+const buildKeywordsMap = (keywords: ModuleKeywords[]) => {
+  const map = new Map<string, string[]>();
+  for (const entry of keywords) {
+    map.set(entry.path, entry.keywords);
+  }
+  return map;
+};
+
+const modulePathSet = (modules: ModuleInfo[]) =>
+  new Set(modules.map((module) => normalizePosixPath(module.path)));
+
+const mergeModuleKeywords = (
+  modules: ModuleInfo[],
+  previous: ModuleIndex | null,
+  updatedKeywords: ModuleKeywords[]
+) => {
+  const previousKeywords = previous
+    ? new Map(previous.modules.map((module) => [module.path, module.keywords]))
+    : new Map<string, string[]>();
+  const updatedMap = buildKeywordsMap(updatedKeywords);
+
+  return modules.map((module) => ({
+    path: module.path,
+    keywords: updatedMap.get(module.path) ?? previousKeywords.get(module.path) ?? []
+  }));
 };
 
 const logCommand = <T extends object>(
@@ -175,13 +274,18 @@ program
     const outDir = path.resolve(repoRoot, String(options.out ?? ".repomap"));
 
     const previousIndex = readFileIndexFile(outDir);
+    const previousModuleIndex = readModuleIndexFile(outDir);
     const files = await collectFiles({
       root: ".",
       cwd: repoRoot,
       ignoreGlobs: Array.isArray(options.ignore) ? options.ignore : [],
       pathStyle: "posix"
     });
-    const currentIndex = await buildFileIndex({ repoRoot, files });
+    const currentIndex = await buildFileIndex({
+      repoRoot,
+      files,
+      hashAlgorithm: previousIndex?.hashAlgorithm
+    });
 
     const changes = previousIndex
       ? diffFileIndex(previousIndex, currentIndex)
@@ -194,10 +298,112 @@ program
           deleted: []
         };
 
+    const changedPaths = new Set([
+      ...changes.added,
+      ...changes.modified,
+      ...changes.deleted
+    ]);
+    const changedCount = changedPaths.size;
+    const totalFiles = currentIndex.files.length || 1;
+    const largeChange =
+      changedCount >= LARGE_CHANGE_COUNT ||
+      changedCount / totalFiles >= LARGE_CHANGE_RATIO;
+    const workspaceChanged = Array.from(changedPaths).some((value) =>
+      isWorkspaceConfigChange(value)
+    );
+
+    const modules = await detectModules({ repoRoot, files });
+    const modulePaths = modulePathSet(modules);
+    modulePaths.add(".");
+
+    let moduleIndex: ModuleIndex | null = null;
+    let entryMap: EntryMap | null = null;
+    let summary: string | null = null;
+    let mode: "full" | "incremental" = "incremental";
+
+    if (!previousModuleIndex || workspaceChanged || largeChange) {
+      mode = "full";
+      const keywords = await extractModuleKeywords({ repoRoot, files, modules });
+      moduleIndex = buildModuleIndex(modules, keywords);
+    } else {
+      const previousModulePaths = modulePathSet(previousModuleIndex.modules);
+      previousModulePaths.add(".");
+      const changedModules = new Set<string>();
+      const missingKeywords = new Set<string>();
+      const previousKeywordMap = new Map(
+        previousModuleIndex.modules.map((module) => [module.path, module.keywords])
+      );
+
+      for (const module of modules) {
+        if (!previousModulePaths.has(module.path)) {
+          changedModules.add(module.path);
+        }
+        if (!previousKeywordMap.has(module.path)) {
+          missingKeywords.add(module.path);
+        }
+      }
+
+      const cacheCurrent = new Map<string, string>();
+      const cachePrevious = new Map<string, string>();
+      for (const filePath of changedPaths) {
+        const currentRoot = resolveModuleRoot(
+          normalizePosixPath(filePath),
+          modulePaths,
+          cacheCurrent
+        );
+        changedModules.add(currentRoot);
+
+        if (previousModulePaths.size > 0) {
+          const previousRoot = resolveModuleRoot(
+            normalizePosixPath(filePath),
+            previousModulePaths,
+            cachePrevious
+          );
+          changedModules.add(previousRoot);
+        }
+      }
+
+      for (const modulePath of missingKeywords) {
+        changedModules.add(modulePath);
+      }
+
+      for (const modulePath of Array.from(changedModules)) {
+        if (!modulePaths.has(modulePath)) {
+          changedModules.delete(modulePath);
+        }
+      }
+
+      const updatedKeywords =
+        changedModules.size > 0
+          ? await extractModuleKeywords({
+              repoRoot,
+              files,
+              modules,
+              includeModules: Array.from(changedModules).sort(compareNames)
+            })
+          : [];
+
+      const keywordEntries = mergeModuleKeywords(
+        modules,
+        previousModuleIndex,
+        updatedKeywords
+      );
+      moduleIndex = buildModuleIndex(modules, keywordEntries);
+    }
+
+    if (moduleIndex) {
+      entryMap = detectEntries({ files, modules });
+      summary = buildSummary({ repoRoot, moduleIndex, entryMap });
+    }
+
     writeFileIndexFile(outDir, currentIndex);
     writeFileChangesFile(outDir, changes);
+    if (moduleIndex) writeModuleIndexFile(outDir, moduleIndex);
+    if (entryMap) writeEntryMapFile(outDir, entryMap);
+    if (summary) writeSummaryFile(outDir, summary);
 
     logCommand(command, "update", {
+      mode,
       added: changes.added.length,
       modified: changes.modified.length,
       deleted: changes.deleted.length
