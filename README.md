@@ -79,6 +79,33 @@ diff -u output/summary.md output-tmp/summary.md
 
 Expected: the `diff` commands produce no output.
 
+## Performance (Example)
+
+Repo: microsoft/vscode @ e08522417da0fb5500b053f45a67ee4825f63de4  
+Files: 8,694 (`rg --files | wc -l`)  
+Machine: macOS 14.3 (Darwin 24.3.0, arm64)  
+Node: v22.17.1  
+RepoMap: 0.1.0  
+
+Command:
+```
+/usr/bin/time -p repomap build --out .repomap
+```
+
+Result:
+```
+real 1.16
+user 0.92
+sys  0.62
+```
+
+Output hashes (SHA-256):
+- module_index.json: d267fb6274947538a26460a927670bc4bce62ad923f4dbdd8c3f67fa45a52a54
+- entry_map.json: 0cfaf7396087a5e2a3aea8b57ff14cf49f619fcd7f0002d87ac011ff08711ce9
+- summary.md: 29ebca4c364470e56fa53ea9560bc1e79dcab95b38d1d15be5478faa9475054a
+
+Note: timings vary by hardware and repo size; hashes demonstrate stable output for this run.
+
 ## Publish (Maintainers)
 
 ```bash
