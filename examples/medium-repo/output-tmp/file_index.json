@@ -1,0 +1,54 @@
+{
+  "repoRoot": "/Users/justin/Desktop/RepoMap/examples/medium-repo",
+  "hashAlgorithm": "sha256",
+  "files": [
+    {
+      "path": "package.json",
+      "size": 89,
+      "mtimeMs": 1768831260877.7974,
+      "hash": "02db6b5480366e666a4aaceb23dcc71ec10016109068cc32ce290a88b21fc6a5"
+    },
+    {
+      "path": "src/auth/controller.ts",
+      "size": 45,
+      "mtimeMs": 1768831277457.169,
+      "hash": "c9f752280e1354a9ee51a5467cb07153c47b8fcf17dc7acc6fe58f9d857f1b27"
+    },
+    {
+      "path": "src/auth/routes.ts",
+      "size": 197,
+      "mtimeMs": 1768831271891.704,
+      "hash": "b1aefa5e542949c3d36d0ed230bbc6273a1ca997accdc5792be521221214b303"
+    },
+    {
+      "path": "src/auth/service.ts",
+      "size": 77,
+      "mtimeMs": 1768831281519.729,
+      "hash": "436c78a00426e8a0ec88a678c6c0243033b8bddca2f1c9e38485a750cff006c0"
+    },
+    {
+      "path": "src/cli.ts",
+      "size": 42,
+      "mtimeMs": 1768831287991.3076,
+      "hash": "4037d55d212f4fdb97b91843cff7f0135adff42f85ceeab13e491e5e7a171157"
+    },
+    {
+      "path": "src/index.ts",
+      "size": 99,
+      "mtimeMs": 1768831267384.4705,
+      "hash": "4b797ba045167170c2d96945fcbd3c70ddb0fd70ddf516256727cae0b12fe95b"
+    },
+    {
+      "path": "src/jobs/cleanup.ts",
+      "size": 37,
+      "mtimeMs": 1768831284387.057,
+      "hash": "411c7bcb185d2e0c436dd48a82dfbae8a2a1e3be850dd5feb960d4175866e115"
+    },
+    {
+      "path": "src/models/user.ts",
+      "size": 40,
+      "mtimeMs": 1768831293969.181,
+      "hash": "6504bee4415828ecb5008226483f72a81a172a41eccacda4256d0a7c4831e5c8"
+    }
+  ]
+}

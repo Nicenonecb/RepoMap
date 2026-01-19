@@ -1,0 +1,25 @@
+{
+  "modules": [
+    {
+      "path": ".",
+      "entries": [
+        {
+          "path": "src/auth/routes.ts",
+          "type": "web-route"
+        },
+        {
+          "path": "src/auth/controller.ts",
+          "type": "controller"
+        },
+        {
+          "path": "src/cli.ts",
+          "type": "cli-entry"
+        },
+        {
+          "path": "src/jobs/cleanup.ts",
+          "type": "job"
+        }
+      ]
+    }
+  ]
+}

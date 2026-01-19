@@ -1,0 +1,72 @@
+{
+  "repoRoot": "/Users/justin/Desktop/RepoMap/examples/monorepo",
+  "hashAlgorithm": "sha256",
+  "files": [
+    {
+      "path": "package.json",
+      "size": 103,
+      "mtimeMs": 1768831302954.784,
+      "hash": "8a4d05ae640401ee2db9fe25ab4766c0490dd5889e798776545accfeb55f70dc"
+    },
+    {
+      "path": "packages/auth/package.json",
+      "size": 68,
+      "mtimeMs": 1768831310811.9348,
+      "hash": "7b63c426f1d7f32a84d27a9db597428b8176810b85bd755d80ca3b0b5dd71971"
+    },
+    {
+      "path": "packages/auth/src/index.ts",
+      "size": 41,
+      "mtimeMs": 1768831316849.4548,
+      "hash": "c12671f5315054ae607cbadab7727cec6be1b622a23e432b8559ad9e4b82734d"
+    },
+    {
+      "path": "packages/auth/src/routes.ts",
+      "size": 159,
+      "mtimeMs": 1768831322284.2495,
+      "hash": "58817ea2804976890a8ce6838bf0de5dca8818fb835df177983cc3e90e984539"
+    },
+    {
+      "path": "packages/auth/src/service.ts",
+      "size": 42,
+      "mtimeMs": 1768831334655.089,
+      "hash": "cdc92a66b3b2d7b2a27853cc2c0470b2962cee70182dd1d77bdeb3cdeadd10e2"
+    },
+    {
+      "path": "packages/auth/src/token.ts",
+      "size": 66,
+      "mtimeMs": 1768831329659.848,
+      "hash": "86eca37d00d688178d96a4b319915d7239f48dea61802246c39e582c216057e6"
+    },
+    {
+      "path": "packages/billing/package.json",
+      "size": 71,
+      "mtimeMs": 1768831339122.6301,
+      "hash": "6d81371be93eeeaa47f9dc78d512a1023e904e8eae61fd0d9a73c78ee07c713f"
+    },
+    {
+      "path": "packages/billing/src/index.ts",
+      "size": 44,
+      "mtimeMs": 1768831342453.2847,
+      "hash": "74f7a211c1dcf6622a6dec08f3ca4b44e4045c9c056988a4c8cbefa944a62342"
+    },
+    {
+      "path": "packages/billing/src/invoice.ts",
+      "size": 43,
+      "mtimeMs": 1768831349443.9385,
+      "hash": "e5c3120161d05c8dcf11d25c0e36dafb35bf769729b011876a614ee01452922a"
+    },
+    {
+      "path": "packages/billing/src/worker.ts",
+      "size": 35,
+      "mtimeMs": 1768831353336.1292,
+      "hash": "5bbdec91f6bfcb61b5bf173d8e9dab5d73cbd02cf2de05b09b3d75aaef7ab6b9"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "size": 27,
+      "mtimeMs": 1768831307143.562,
+      "hash": "0fb360452b0231d114d0b0ad6cc76bb48fe528382f55827cf93739bf64ec79e1"
+    }
+  ]
+}

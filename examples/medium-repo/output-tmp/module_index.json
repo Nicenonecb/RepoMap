@@ -1,0 +1,24 @@
+{
+  "modules": [
+    {
+      "name": "medium-repo",
+      "path": ".",
+      "language": "node",
+      "fileCount": 8,
+      "keywords": [
+        "auth",
+        "login",
+        "me",
+        "refresh",
+        "authcontroller",
+        "main",
+        "refreshtoken",
+        "cleanup",
+        "cli",
+        "index",
+        "package",
+        "user"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "modules": [
+    {
+      "path": ".",
+      "entries": [
+        {
+          "path": "",
+          "type": "unknown-entry"
+        }
+      ]
+    },
+    {
+      "path": "packages/auth",
+      "entries": [
+        {
+          "path": "packages/auth/src/routes.ts",
+          "type": "web-route"
+        }
+      ]
+    },
+    {
+      "path": "packages/billing",
+      "entries": [
+        {
+          "path": "packages/billing/src/worker.ts",
+          "type": "worker"
+        }
+      ]
+    }
+  ]
+}

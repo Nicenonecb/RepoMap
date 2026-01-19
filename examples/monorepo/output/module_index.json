@@ -1,0 +1,46 @@
+{
+  "modules": [
+    {
+      "name": "acme-monorepo",
+      "path": ".",
+      "language": "node",
+      "fileCount": 2,
+      "keywords": [
+        "package",
+        "pnpm",
+        "workspace"
+      ]
+    },
+    {
+      "name": "@acme/auth",
+      "path": "packages/auth",
+      "language": "node",
+      "fileCount": 5,
+      "keywords": [
+        "auth",
+        "authservice",
+        "login",
+        "refresh",
+        "issuetoken",
+        "refreshtoken",
+        "index",
+        "package",
+        "token"
+      ]
+    },
+    {
+      "name": "@acme/billing",
+      "path": "packages/billing",
+      "language": "node",
+      "fileCount": 4,
+      "keywords": [
+        "invoice",
+        "billingworker",
+        "invoiceservice",
+        "index",
+        "package",
+        "worker"
+      ]
+    }
+  ]
+}
