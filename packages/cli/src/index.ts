@@ -46,10 +46,10 @@ const writeMetaFile = (outDir: string, meta: RepoMapMeta) => {
   writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`);
 };
 
-const logCommand = (
+const logCommand = <T extends object>(
   command: Command,
   name: string,
-  meta?: Record<string, unknown>
+  meta?: T
 ) => {
   const payload = {
     command: name,
