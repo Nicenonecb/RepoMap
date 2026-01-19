@@ -8,7 +8,15 @@ before making changes.
 
 Core build/update/query flows are implemented. See the quickstart below.
 
-## Quickstart (30 seconds)
+## Install (npm)
+
+```bash
+npm i -g repomap
+repomap build --out .repomap
+repomap query "refresh token" --out .repomap
+```
+
+## Quickstart (from source)
 
 ```bash
 pnpm install
@@ -70,6 +78,19 @@ diff -u output/summary.md output-tmp/summary.md
 ```
 
 Expected: the `diff` commands produce no output.
+
+## Publish (Maintainers)
+
+```bash
+# ensure versions are updated in packages/core and packages/cli
+pnpm -r build
+
+cd packages/core
+npm publish --access public
+
+cd ../cli
+npm publish
+```
 
 ## AI Usage Tips
 

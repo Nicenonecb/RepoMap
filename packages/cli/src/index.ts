@@ -15,7 +15,7 @@ import {
   extractModuleKeywords,
   buildSummary,
   queryModules
-} from "@repomap/core";
+} from "@repo-map/core";
 import type {
   EntryMap,
   FileChangeSet,
@@ -25,7 +25,7 @@ import type {
   ModuleKeywords,
   QueryResult,
   RepoMapMeta
-} from "@repomap/core";
+} from "@repo-map/core";
 const VERSION = "0.1.0";
 
 const LARGE_CHANGE_RATIO = 0.25;

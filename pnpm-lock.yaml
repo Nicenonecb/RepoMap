@@ -10,8 +10,8 @@ importers:
 
   packages/cli:
     dependencies:
-      '@repomap/core':
-        specifier: workspace:*
+      '@repo-map/core':
+        specifier: ^0.1.0
         version: link:../core
       commander:
         specifier: ^11.1.0

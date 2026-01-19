@@ -1,18 +1,23 @@
 {
-  "name": "@repomap/cli",
+  "name": "repomap",
   "version": "0.1.0",
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "repomap": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "predev": "pnpm --filter @repomap/core build",
+    "predev": "pnpm --filter @repo-map/core build",
     "dev": "tsx src/index.ts",
-    "prebuild": "pnpm --filter @repomap/core build",
+    "prebuild": "pnpm --filter @repo-map/core build",
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@repomap/core": "workspace:*",
+    "@repo-map/core": "^0.1.0",
     "commander": "^11.1.0"
   },
   "devDependencies": {

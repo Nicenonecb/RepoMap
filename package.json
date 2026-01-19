@@ -1,11 +1,11 @@
 {
-  "name": "repomap",
+  "name": "repomap-workspace",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter @repomap/cli dev",
-    "build": "pnpm --filter @repomap/cli build"
+    "dev": "pnpm --filter repomap dev",
+    "build": "pnpm --filter repomap build"
   }
 }
