@@ -10,7 +10,8 @@ import {
   createMeta,
   detectEntries,
   detectModules,
-  extractModuleKeywords
+  extractModuleKeywords,
+  buildSummary
 } from "@repomap/core";
 import type { EntryMap, ModuleIndex, RepoMapMeta } from "@repomap/core";
 const VERSION = "0.1.0";
@@ -65,6 +66,12 @@ const writeEntryMapFile = (outDir: string, entryMap: EntryMap) => {
   writeFileSync(entryMapPath, `${JSON.stringify(entryMap, null, 2)}\n`);
 };
 
+const writeSummaryFile = (outDir: string, summary: string) => {
+  mkdirSync(outDir, { recursive: true });
+  const summaryPath = path.join(outDir, "summary.md");
+  writeFileSync(summaryPath, summary);
+};
+
 const logCommand = <T extends object>(
   command: Command,
   name: string,
@@ -113,10 +120,12 @@ program
     const keywords = await extractModuleKeywords({ repoRoot, files, modules });
     const moduleIndex = buildModuleIndex(modules, keywords);
     const entryMap = detectEntries({ files, modules });
+    const summary = buildSummary({ repoRoot, moduleIndex, entryMap });
 
     writeMetaFile(outDir, meta);
     writeModuleIndexFile(outDir, moduleIndex);
     writeEntryMapFile(outDir, entryMap);
+    writeSummaryFile(outDir, summary);
     logCommand(command, "build", meta);
   });
 
