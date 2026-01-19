@@ -5,7 +5,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter repomap dev",
-    "build": "pnpm --filter repomap build"
+    "dev": "pnpm --filter @repo-map/repomap dev",
+    "build": "pnpm --filter @repo-map/repomap build"
   }
 }

@@ -11,7 +11,7 @@ Core build/update/query flows are implemented. See the quickstart below.
 ## Install (npm)
 
 ```bash
-npm i -g repomap
+npm i -g @repo-map/repomap
 repomap build --out .repomap
 repomap query "refresh token" --out .repomap
 ```
@@ -89,7 +89,7 @@ cd packages/core
 npm publish --access public
 
 cd ../cli
-npm publish
+npm publish --access public
 ```
 
 ## AI Usage Tips

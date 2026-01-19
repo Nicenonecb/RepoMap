@@ -1,5 +1,5 @@
 {
-  "name": "repomap",
+  "name": "@repo-map/repomap",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -10,6 +10,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "predev": "pnpm --filter @repo-map/core build",
     "dev": "tsx src/index.ts",
