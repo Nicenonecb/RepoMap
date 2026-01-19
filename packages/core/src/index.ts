@@ -6,3 +6,4 @@ export * from "./module-index.js";
 export * from "./entry-detector.js";
 export * from "./summary.js";
 export * from "./file-index.js";
+export * from "./query.js";

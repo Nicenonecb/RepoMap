@@ -13,7 +13,8 @@ import {
   detectModules,
   diffFileIndex,
   extractModuleKeywords,
-  buildSummary
+  buildSummary,
+  queryModules
 } from "@repomap/core";
 import type {
   EntryMap,
@@ -22,6 +23,7 @@ import type {
   ModuleInfo,
   ModuleIndex,
   ModuleKeywords,
+  QueryResult,
   RepoMapMeta
 } from "@repomap/core";
 const VERSION = "0.1.0";
@@ -113,6 +115,16 @@ const readModuleIndexFile = (outDir: string) => {
   try {
     const raw = readFileSync(moduleIndexPath, "utf8");
     return JSON.parse(raw) as ModuleIndex;
+  } catch {
+    return null;
+  }
+};
+
+const readEntryMapFile = (outDir: string) => {
+  const entryMapPath = path.join(outDir, "entry_map.json");
+  try {
+    const raw = readFileSync(entryMapPath, "utf8");
+    return JSON.parse(raw) as EntryMap;
   } catch {
     return null;
   }
@@ -213,6 +225,27 @@ const logCommand = <T extends object>(
   };
 
   console.log(JSON.stringify(payload, null, 2));
+};
+
+const formatQueryResult = (result: QueryResult) => {
+  const lines: string[] = [];
+  lines.push(`Query: "${result.query}"`);
+  lines.push(
+    `Tokens: ${result.tokens.length > 0 ? result.tokens.join(", ") : "-"}`
+  );
+  lines.push(`Results: ${result.results.length}`);
+  for (const [index, entry] of result.results.entries()) {
+    lines.push(
+      `${index + 1}. ${entry.path} (${entry.name}) score=${entry.score} files=${entry.fileCount} lang=${entry.language}`
+    );
+    if (entry.matches.length > 0) {
+      const matchText = entry.matches
+        .map((match) => `${match.field}:${match.value}`)
+        .join(", ");
+      lines.push(`   matches: ${matchText}`);
+    }
+  }
+  return `${lines.join("\n")}\n`;
 };
 
 program
@@ -419,8 +452,51 @@ program
 program
   .command("query [text]")
   .description("Query an existing RepoMap output")
-  .action((_options, command) => {
-    logCommand(command, "query");
+  .option("--limit <count>", "max results", "50")
+  .option("--min-score <score>", "minimum score", "1")
+  .action((text, _options, command) => {
+    const queryText = String(text ?? "").trim();
+    if (!queryText) {
+      console.error("Query text is required.");
+      command.help({ error: true });
+      return;
+    }
+
+    const cwd = process.cwd();
+    const repoRoot = readGitRoot(cwd) ?? cwd;
+    const options = command.optsWithGlobals();
+    const outDir = path.resolve(repoRoot, String(options.out ?? ".repomap"));
+
+    const moduleIndex = readModuleIndexFile(outDir);
+    if (!moduleIndex) {
+      console.error(
+        `module_index.json not found. Run "repomap build" first in ${outDir}.`
+      );
+      process.exitCode = 1;
+      return;
+    }
+
+    const entryMap = readEntryMapFile(outDir);
+    const maxResults = Number(options.limit ?? "50");
+    const minScore = Number(options.minScore ?? "1");
+    const result = queryModules({
+      query: queryText,
+      moduleIndex,
+      entryMap,
+      maxResults: Number.isFinite(maxResults)
+        ? Math.max(0, Math.floor(maxResults))
+        : 50,
+      minScore: Number.isFinite(minScore)
+        ? Math.max(0, Math.floor(minScore))
+        : 1
+    });
+
+    if (String(options.format).toLowerCase() === "json") {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    console.log(formatQueryResult(result));
   });
 
 program.showHelpAfterError();
