@@ -3,23 +3,20 @@
 [中文](README.zh.md) | [English](README.md)
 
 RepoMap 是一个 CLI 工具，用于生成大型仓库的稳定、可复现结构地图。
-它面向超大 monorepo，帮助 AI 或人类在改代码前快速掌握结构。
+它帮助 AI 或人类在改代码前快速理解仓库结构。
 
-## 状态
+## 概览
 
-核心的 build/update/query 流程已实现，见下方快速开始。
+在 10 万到 100 万行以上的大型仓库中，AI 和开发者会遇到明显瓶颈：
 
-## 背景
+- 难以快速理解整体结构
+- 定位改动点高度依赖猜关键词
+- 单纯依靠向量 RAG 容易召回泛化、入口不准
+- 仓库结构差异大，缺少稳定先验
+- 每次全量扫描成本高且不可复现
 
-随着 AI (Codex / Claude / GPT) 开始参与真实工程代码修改，在 10 万到 100 万行以上代码仓中出现了严重瓶颈：
-
-- AI 无法快速理解代码仓整体结构
-- AI 定位修改点高度依赖猜关键词，准确率低
-- 单纯的向量 RAG 在大仓库中召回泛化严重，入口定位不准
-- 不同仓库结构差异巨大，Agent 缺乏稳定先验
-- 每次任务都重新扫描仓库，成本高且不可复现
-
-目前缺少一个工程级、可复用、可增量更新的“仓库结构地图 (Repo Map)”工具，作为 AI 修改代码前的基础设施层。
+RepoMap 提供工程级、可增量的“仓库结构地图”，
+作为改代码前的基础设施层。
 
 ## 目标
 
@@ -28,12 +25,30 @@ RepoMap 是一个 CLI 工具，用于生成大型仓库的稳定、可复现结�
 - 支持增量更新，适配持续演进的大仓库
 - 输出人类可读 + AI 可消费的标准化产物
 
-## 用户
+## 非目标
+
+- 不自动修改代码
+- 不自动生成 PR / 提交代码
+- 不做完整语义理解 (RepoMap 不是 LLM)
+- 不取代 IDE / LSP
+- 不内置完整向量 RAG 系统 (可对接但不内置)
+
+## 目标用户
 
 1. 使用 Codex / Claude Code / AI Agent 的工程师
 2. 维护中大型 monorepo 的技术团队
 3. 构建 prd2code / agent workflow 的平台型开发者
 4. CI / 自动化系统 (只读运行)
+
+## 特性
+
+- 输出顺序稳定，避免无意义 diff
+- 支持增量更新并记录文件变化
+- 模块识别 + 关键词抽取
+- 入口识别 (路由、控制器、服务、CLI、任务/Worker)
+- query/show/explain 提供人类输出与 JSON
+- 支持 .gitignore + 默认忽略 + CLI ignore
+- 统一 POSIX 路径输出
 
 ## 安装 (npm)
 
@@ -85,9 +100,27 @@ Show 参数：
 - `entry_map.json`: 模块入口文件
 - `summary.md`: AI 友好摘要
 
+输出目录结构：
+
+```text
+.repomap/
+├── meta.json
+├── file_index.json
+├── module_index.json
+├── entry_map.json
+└── summary.md
+```
+
 `repomap update` 会刷新输出并写入 `file_changes.json`。
 
-示例输出在 `examples/` 目录中。
+## 示例流程
+
+```bash
+repomap build --out .repomap
+repomap show --out .repomap --path-prefix packages/
+repomap query "refresh token" --out .repomap
+repomap explain "refresh token" --out .repomap --format json
+```
 
 ## 手动验证 (无 CI)
 
@@ -115,13 +148,13 @@ diff -u output/summary.md output-tmp/summary.md
 
 预期：`diff` 命令无输出。
 
-## 性能 
+## 性能 (示例)
 
-Repo: microsoft/vscode @ e08522417da0fb5500b053f45a67ee4825f63de4  
-Files: 8,694 (`rg --files | wc -l`)  
-Machine: macOS 14.3 (Darwin 24.3.0, arm64)  
-Node: v22.17.1  
-RepoMap: 0.1.0  
+Repo: microsoft/vscode @ e08522417da0fb5500b053f45a67ee4825f63de4
+Files: 8,694 (`rg --files | wc -l`)
+Machine: macOS 14.3 (Darwin 24.3.0, arm64)
+Node: v22.17.1
+RepoMap: 0.1.0
 
 命令：
 ```
@@ -142,6 +175,13 @@ sys  0.62
 
 注：耗时因硬件与仓库规模而异；哈希用于说明输出稳定。
 
+## 路线图
+
+- 优化入口识别规则与数据模型提示
+- 增强 query 的人类可读性与定位能力
+- 补充真实仓库示例与对比
+- 可选的 CI 工作流，保证可复现
+
 ## 发布 (维护者)
 
 ```bash
@@ -154,6 +194,18 @@ npm publish --access public
 cd ../cli
 npm publish --access public
 ```
+
+## 贡献
+
+欢迎提交 issue 和 PR，请包含：
+
+- 变更描述
+- 复现步骤或测试方式
+- 如有行为变化，请更新文档
+
+## License
+
+MIT，见 `LICENSE`。
 
 ## AI 使用建议
 

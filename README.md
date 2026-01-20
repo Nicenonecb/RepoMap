@@ -2,27 +2,21 @@
 
 [English](README.md) | [中文](README.zh.md)
 
-RepoMap is a CLI tool for generating a stable, reproducible map of large repositories.
-It targets massive monorepos where AI or humans need a fast structural overview
-before making changes.
+RepoMap is a CLI tool that generates a stable, reproducible structural map of large repositories.
+It helps AI or humans quickly understand codebases before making changes.
 
-## Status
+## Overview
 
-Core build/update/query flows are implemented. See the quickstart below.
+Large repositories (100k-1M+ LOC) expose bottlenecks for AI and developers:
 
-## Background
+- Hard to grasp overall structure quickly
+- Change localization depends on guessing keywords
+- Vector RAG alone over-generalizes and misses entry points
+- Repo layouts vary widely, lacking stable priors
+- Full rescans are costly and not reproducible
 
-As AI (Codex / Claude / GPT) starts editing real-world codebases, large repositories
-with 100k to 1M+ lines expose critical bottlenecks:
-
-- AI cannot quickly understand the overall structure
-- Locating changes relies on guessing keywords, with low accuracy
-- Vector RAG alone over-generalizes and misses true entry points
-- Repo structures vary widely, lacking a stable prior for agents
-- Rescanning every task is costly and not reproducible
-
-There is a gap for an engineering-grade, reusable, incremental "repo map"
-as baseline infrastructure before AI modifies code.
+RepoMap provides an engineering-grade, incremental "repo map" as baseline infrastructure
+before code modification.
 
 ## Goals
 
@@ -31,12 +25,30 @@ as baseline infrastructure before AI modifies code.
 - Support incremental updates for evolving repos
 - Produce outputs readable by humans and consumable by AI
 
+## Non-Goals
+
+- No automatic code changes
+- No automatic PRs/commits
+- No full semantic understanding (RepoMap is not an LLM)
+- Not a replacement for IDE/LSP
+- No built-in full vector RAG system (can integrate externally)
+
 ## Target Users
 
 1. Engineers using Codex / Claude Code / AI agents
 2. Teams maintaining mid-to-large monorepos
 3. Platform developers building prd2code / agent workflows
 4. CI or automation systems (read-only runs)
+
+## Features
+
+- Stable output ordering to avoid diff noise
+- Incremental update with file change tracking
+- Module detection with keywords
+- Entry detection (routes, controllers, services, CLI, jobs/workers)
+- Human-friendly outputs for query/show/explain, plus JSON format
+- Gitignore + default ignore rules + CLI ignore patterns
+- POSIX-style paths for consistent output
 
 ## Install (npm)
 
@@ -55,7 +67,7 @@ node packages/cli/dist/index.js build --out .repomap
 node packages/cli/dist/index.js query "refresh token" --out .repomap
 ```
 
-## CLI Commands
+## Commands
 
 - `repomap build`: build a fresh RepoMap
 - `repomap update`: incremental update (reuses stable outputs)
@@ -88,9 +100,27 @@ Show options:
 - `entry_map.json`: entry files by module
 - `summary.md`: AI-friendly summary
 
+Output directory:
+
+```text
+.repomap/
+├── meta.json
+├── file_index.json
+├── module_index.json
+├── entry_map.json
+└── summary.md
+```
+
 `repomap update` refreshes outputs and writes `file_changes.json`.
 
-Sample outputs live under `examples/`.
+## Example Workflow
+
+```bash
+repomap build --out .repomap
+repomap show --out .repomap --path-prefix packages/
+repomap query "refresh token" --out .repomap
+repomap explain "refresh token" --out .repomap --format json
+```
 
 ## Manual Verification (No CI)
 
@@ -118,13 +148,13 @@ diff -u output/summary.md output-tmp/summary.md
 
 Expected: the `diff` commands produce no output.
 
-## Performance
+## Performance (Example)
 
-Repo: microsoft/vscode @ e08522417da0fb5500b053f45a67ee4825f63de4  
-Files: 8,694 (`rg --files | wc -l`)  
-Machine: macOS 14.3 (Darwin 24.3.0, arm64)  
-Node: v22.17.1  
-RepoMap: 0.1.0  
+Repo: microsoft/vscode @ e08522417da0fb5500b053f45a67ee4825f63de4
+Files: 8,694 (`rg --files | wc -l`)
+Machine: macOS 14.3 (Darwin 24.3.0, arm64)
+Node: v22.17.1
+RepoMap: 0.1.0
 
 Command:
 ```
@@ -145,6 +175,13 @@ Output hashes (SHA-256):
 
 Note: timings vary by hardware and repo size; hashes demonstrate stable output for this run.
 
+## Roadmap
+
+- Improve entry heuristics and data model hints
+- Add more query affordances for humans and agents
+- Document larger real-world examples and comparisons
+- Optional CI workflow for reproducible runs
+
 ## Publish (Maintainers)
 
 ```bash
@@ -158,9 +195,21 @@ cd ../cli
 npm publish --access public
 ```
 
+## Contributing
+
+Issues and PRs are welcome. Please include:
+
+- A short description of the change
+- Repro steps or tests when applicable
+- Updated docs if behavior changes
+
+## License
+
+MIT. See `LICENSE`.
+
 ## AI Usage Tips
 
-1. Start with `summary.md` for the high-level layout.
-2. Use `repomap query` to narrow to 1-3 modules.
-3. Inspect `entry_map.json` for likely entry points.
-4. Drill into files with `rg` or your editor.
+1. Start with `summary.md` for the high-level layout
+2. Use `repomap query` to narrow to 1-3 modules
+3. Inspect `entry_map.json` for likely entry points
+4. Drill into files with `rg` or your editor
