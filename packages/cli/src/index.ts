@@ -61,6 +61,12 @@ const collectIgnore = (value: string, previous: string[]) => {
   return next;
 };
 
+const collectList = (value: string, previous: string[]) => {
+  const next = (previous ?? []).slice();
+  next.push(value);
+  return next;
+};
+
 const readGitRoot = (cwd: string) => {
   try {
     const output = execFileSync("git", ["-C", cwd, "rev-parse", "--show-toplevel"], {
@@ -263,6 +269,33 @@ const normalizeCount = (value: unknown, fallback: number) => {
 const hasFormatOverride = (argv: string[]) =>
   argv.some((arg) => arg === "--format" || arg.startsWith("--format="));
 
+const normalizeModuleFilter = (value: string) => {
+  if (!value) return "";
+  return normalizePosixPath(value);
+};
+
+const filterModuleEntries = (
+  modules: ModuleIndex["modules"],
+  moduleFilters: string[],
+  pathPrefix: string | null
+) => {
+  const normalizedFilters = moduleFilters
+    .map(normalizeModuleFilter)
+    .filter(Boolean);
+  const filterSet = new Set(normalizedFilters);
+  const prefix =
+    pathPrefix && pathPrefix !== "." ? normalizeModuleFilter(pathPrefix) : "";
+
+  if (filterSet.size === 0 && !prefix) return modules;
+
+  return modules.filter((module) => {
+    const modulePath = normalizePosixPath(module.path);
+    if (filterSet.size > 0 && !filterSet.has(modulePath)) return false;
+    if (prefix && !modulePath.startsWith(prefix)) return false;
+    return true;
+  });
+};
+
 const groupEntriesByType = (entries: EntryInfo[]) => {
   const sorted = entries.slice().sort((a, b) => {
     const rankA = ENTRY_TYPE_RANK.get(a.type) ?? 999;
@@ -281,14 +314,95 @@ const groupEntriesByType = (entries: EntryInfo[]) => {
   return grouped;
 };
 
-const formatQueryResult = (
-  result: QueryResult,
-  moduleIndex: ModuleIndex,
+const formatModuleDetails = (
+  lines: string[],
+  keywords: string[],
+  entries: EntryInfo[],
+  options: { maxKeywords: number; maxEntries: number }
+) => {
+  const limitedKeywords =
+    options.maxKeywords > 0 ? keywords.slice(0, options.maxKeywords) : [];
+  lines.push(
+    `   keywords: ${limitedKeywords.length > 0 ? limitedKeywords.join(", ") : "-"}`
+  );
+
+  if (entries.length === 0 || options.maxEntries === 0) {
+    lines.push("   entries: -");
+    return;
+  }
+
+  lines.push("   entries:");
+  const groupedEntries = groupEntriesByType(entries);
+  for (const group of groupedEntries) {
+    const limitedPaths =
+      options.maxEntries > 0
+        ? group.paths.slice(0, options.maxEntries)
+        : [];
+    lines.push(`     - ${group.type}: ${limitedPaths.join(", ")}`);
+  }
+};
+
+const formatShowResult = (
+  modules: ModuleIndex["modules"],
   entryMap: EntryMap | null | undefined,
   options: { maxKeywords: number; maxEntries: number }
 ) => {
   const lines: string[] = [];
-  lines.push(`Query: "${result.query}"`);
+  lines.push(`Modules: ${modules.length}`);
+  const entryLookup = buildEntryLookup(entryMap);
+  for (const [index, module] of modules.entries()) {
+    lines.push(
+      `${index + 1}. ${module.path} (${module.name}) files=${module.fileCount} lang=${module.language}`
+    );
+    const entries = entryLookup.get(module.path) ?? [];
+    formatModuleDetails(lines, module.keywords ?? [], entries, options);
+  }
+  return `${lines.join("\n")}\n`;
+};
+
+const buildShowJson = (
+  modules: ModuleIndex["modules"],
+  entryMap: EntryMap | null | undefined
+) => {
+  const entryLookup = buildEntryLookup(entryMap);
+  return {
+    modules: modules.map((module) => ({
+      name: module.name,
+      path: module.path,
+      language: module.language,
+      fileCount: module.fileCount,
+      keywords: module.keywords ?? [],
+      entries: entryLookup.get(module.path) ?? []
+    }))
+  };
+};
+
+const buildExplainJson = (
+  result: QueryResult,
+  moduleIndex: ModuleIndex,
+  entryMap: EntryMap | null | undefined
+) => {
+  const keywordMap = buildModuleKeywordMap(moduleIndex);
+  const entryLookup = buildEntryLookup(entryMap);
+  return {
+    query: result.query,
+    tokens: result.tokens,
+    results: result.results.map((entry) => ({
+      ...entry,
+      keywords: keywordMap.get(entry.path) ?? [],
+      entries: entryLookup.get(entry.path) ?? []
+    }))
+  };
+};
+
+const formatQueryResult = (
+  result: QueryResult,
+  moduleIndex: ModuleIndex,
+  entryMap: EntryMap | null | undefined,
+  options: { maxKeywords: number; maxEntries: number; label?: string }
+) => {
+  const lines: string[] = [];
+  lines.push(`${options.label ?? "Query"}: "${result.query}"`);
   lines.push(
     `Tokens: ${result.tokens.length > 0 ? result.tokens.join(", ") : "-"}`
   );
@@ -300,25 +414,8 @@ const formatQueryResult = (
       `${index + 1}. ${entry.path} (${entry.name}) score=${entry.score} files=${entry.fileCount} lang=${entry.language}`
     );
     const keywords = keywordMap.get(entry.path) ?? [];
-    const limitedKeywords =
-      options.maxKeywords > 0 ? keywords.slice(0, options.maxKeywords) : [];
-    lines.push(
-      `   keywords: ${limitedKeywords.length > 0 ? limitedKeywords.join(", ") : "-"}`
-    );
     const entries = entryLookup.get(entry.path) ?? [];
-    if (entries.length === 0 || options.maxEntries === 0) {
-      lines.push("   entries: -");
-    } else {
-      lines.push("   entries:");
-      const groupedEntries = groupEntriesByType(entries);
-      for (const group of groupedEntries) {
-        const limitedPaths =
-          options.maxEntries > 0
-            ? group.paths.slice(0, options.maxEntries)
-            : [];
-        lines.push(`     - ${group.type}: ${limitedPaths.join(", ")}`);
-      }
-    }
+    formatModuleDetails(lines, keywords, entries, options);
     if (entry.matches.length > 0) {
       const matchText = entry.matches
         .map((match) => `${match.field}:${match.value}`)
@@ -603,7 +700,149 @@ program
     console.log(
       formatQueryResult(result, moduleIndex, entryMap, {
         maxKeywords,
-        maxEntries
+        maxEntries,
+        label: "Query"
+      })
+    );
+  });
+
+program
+  .command("show")
+  .description("Show modules with entries and keywords")
+  .option("--module <path>", "filter by module path (repeatable)", collectList, [])
+  .option("--path-prefix <prefix>", "filter by module path prefix")
+  .option(
+    "--max-keywords <count>",
+    "max keywords per module in human output",
+    String(DEFAULT_QUERY_MAX_KEYWORDS)
+  )
+  .option(
+    "--max-entries <count>",
+    "max entry paths per entry type in human output",
+    String(DEFAULT_QUERY_MAX_ENTRIES)
+  )
+  .action((_options, command) => {
+    const cwd = process.cwd();
+    const repoRoot = readGitRoot(cwd) ?? cwd;
+    const options = command.optsWithGlobals();
+    const outDir = path.resolve(repoRoot, String(options.out ?? ".repomap"));
+
+    const moduleIndex = readModuleIndexFile(outDir);
+    if (!moduleIndex) {
+      console.error(
+        `module_index.json not found. Run "repomap build" first in ${outDir}.`
+      );
+      process.exitCode = 1;
+      return;
+    }
+
+    const entryMap = readEntryMapFile(outDir);
+    const modules = filterModuleEntries(
+      moduleIndex.modules,
+      Array.isArray(options.module) ? options.module : [],
+      typeof options.pathPrefix === "string" ? options.pathPrefix : null
+    );
+    const maxKeywords = normalizeCount(
+      options.maxKeywords,
+      DEFAULT_QUERY_MAX_KEYWORDS
+    );
+    const maxEntries = normalizeCount(
+      options.maxEntries,
+      DEFAULT_QUERY_MAX_ENTRIES
+    );
+
+    const formatValue = String(options.format ?? "json").toLowerCase();
+    const outputFormat = hasFormatOverride(process.argv)
+      ? formatValue
+      : "human";
+
+    if (outputFormat === "json") {
+      console.log(JSON.stringify(buildShowJson(modules, entryMap), null, 2));
+      return;
+    }
+
+    console.log(
+      formatShowResult(modules, entryMap, { maxKeywords, maxEntries })
+    );
+  });
+
+program
+  .command("explain [text]")
+  .description("Explain a query result with module details")
+  .option("--limit <count>", "max results", "50")
+  .option("--min-score <score>", "minimum score", "1")
+  .option(
+    "--max-keywords <count>",
+    "max keywords per module in human output",
+    String(DEFAULT_QUERY_MAX_KEYWORDS)
+  )
+  .option(
+    "--max-entries <count>",
+    "max entry paths per entry type in human output",
+    String(DEFAULT_QUERY_MAX_ENTRIES)
+  )
+  .action((text, _options, command) => {
+    const queryText = String(text ?? "").trim();
+    if (!queryText) {
+      console.error("Query text is required.");
+      command.help({ error: true });
+      return;
+    }
+
+    const cwd = process.cwd();
+    const repoRoot = readGitRoot(cwd) ?? cwd;
+    const options = command.optsWithGlobals();
+    const outDir = path.resolve(repoRoot, String(options.out ?? ".repomap"));
+
+    const moduleIndex = readModuleIndexFile(outDir);
+    if (!moduleIndex) {
+      console.error(
+        `module_index.json not found. Run "repomap build" first in ${outDir}.`
+      );
+      process.exitCode = 1;
+      return;
+    }
+
+    const entryMap = readEntryMapFile(outDir);
+    const maxResults = Number(options.limit ?? "50");
+    const minScore = Number(options.minScore ?? "1");
+    const maxKeywords = normalizeCount(
+      options.maxKeywords,
+      DEFAULT_QUERY_MAX_KEYWORDS
+    );
+    const maxEntries = normalizeCount(
+      options.maxEntries,
+      DEFAULT_QUERY_MAX_ENTRIES
+    );
+    const result = queryModules({
+      query: queryText,
+      moduleIndex,
+      entryMap,
+      maxResults: Number.isFinite(maxResults)
+        ? Math.max(0, Math.floor(maxResults))
+        : 50,
+      minScore: Number.isFinite(minScore)
+        ? Math.max(0, Math.floor(minScore))
+        : 1
+    });
+
+    const formatValue = String(options.format ?? "json").toLowerCase();
+    const outputFormat = hasFormatOverride(process.argv)
+      ? formatValue
+      : "human";
+
+    if (outputFormat === "json") {
+      console.log(
+        JSON.stringify(buildExplainJson(result, moduleIndex, entryMap), null, 2)
+      );
+      return;
+    }
+
+    console.log(
+      formatQueryResult(result, moduleIndex, entryMap, {
+        maxKeywords,
+        maxEntries,
+        label: "Explain"
       })
     );
   });

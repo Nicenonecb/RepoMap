@@ -30,16 +30,23 @@ node packages/cli/dist/index.js query "refresh token" --out .repomap
 - `repomap build`: build a fresh RepoMap
 - `repomap update`: incremental update (reuses stable outputs)
 - `repomap query "<text>"`: search modules by name/path/keywords/entry paths
+- `repomap show`: list modules with entries and keywords
+- `repomap explain "<text>"`: query with expanded module details
 
 Global options:
 
 - `--out <path>` output directory (default `.repomap`)
-- `--format <name>` output format (`json` or `human`, query defaults to `human`)
+- `--format <name>` output format (`json` or `human`, query/show/explain default to `human`)
 - `--ignore <pattern>` ignore pattern (repeatable)
 - `--limit <count>` max query results
 - `--min-score <score>` minimum query score
-- `--max-keywords <count>` max keywords per module in human query output
-- `--max-entries <count>` max entry paths per entry type in human query output
+- `--max-keywords <count>` max keywords per module in human output
+- `--max-entries <count>` max entry paths per entry type in human output
+
+Show options:
+
+- `--module <path>` filter by module path (repeatable)
+- `--path-prefix <prefix>` filter by module path prefix
 
 ## Outputs
 
