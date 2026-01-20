@@ -1,5 +1,7 @@
 # RepoMap
 
+[English](README.md) | [中文](README.zh.md)
+
 RepoMap is a CLI tool for generating a stable, reproducible map of large repositories.
 It targets massive monorepos where AI or humans need a fast structural overview
 before making changes.
@@ -7,6 +9,34 @@ before making changes.
 ## Status
 
 Core build/update/query flows are implemented. See the quickstart below.
+
+## Background
+
+As AI (Codex / Claude / GPT) starts editing real-world codebases, large repositories
+with 100k to 1M+ lines expose critical bottlenecks:
+
+- AI cannot quickly understand the overall structure
+- Locating changes relies on guessing keywords, with low accuracy
+- Vector RAG alone over-generalizes and misses true entry points
+- Repo structures vary widely, lacking a stable prior for agents
+- Rescanning every task is costly and not reproducible
+
+There is a gap for an engineering-grade, reusable, incremental "repo map"
+as baseline infrastructure before AI modifies code.
+
+## Goals
+
+- Generate a structured map for large repositories
+- Serve as a baseline for AI/agents before code changes
+- Support incremental updates for evolving repos
+- Produce outputs readable by humans and consumable by AI
+
+## Target Users
+
+1. Engineers using Codex / Claude Code / AI agents
+2. Teams maintaining mid-to-large monorepos
+3. Platform developers building prd2code / agent workflows
+4. CI or automation systems (read-only runs)
 
 ## Install (npm)
 
@@ -88,7 +118,7 @@ diff -u output/summary.md output-tmp/summary.md
 
 Expected: the `diff` commands produce no output.
 
-## Performance (Example)
+## Performance
 
 Repo: microsoft/vscode @ e08522417da0fb5500b053f45a67ee4825f63de4  
 Files: 8,694 (`rg --files | wc -l`)  
