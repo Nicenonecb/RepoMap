@@ -17,6 +17,7 @@ import {
   queryModules
 } from "@repo-map/core";
 import type {
+  EntryInfo,
   EntryMap,
   FileChangeSet,
   FileIndex,
@@ -37,6 +38,20 @@ const WORKSPACE_CONFIG_FILES = new Set([
   "nx.json",
   "workspace.json"
 ]);
+const ENTRY_TYPE_ORDER = [
+  "web-route",
+  "controller",
+  "service",
+  "cli-entry",
+  "worker",
+  "job",
+  "unknown-entry"
+];
+const ENTRY_TYPE_RANK = new Map(
+  ENTRY_TYPE_ORDER.map((type, index) => [type, index])
+);
+const DEFAULT_QUERY_MAX_KEYWORDS = 8;
+const DEFAULT_QUERY_MAX_ENTRIES = 3;
 
 const program = new Command();
 
@@ -194,6 +209,18 @@ const buildKeywordsMap = (keywords: ModuleKeywords[]) => {
   return map;
 };
 
+const buildModuleKeywordMap = (moduleIndex: ModuleIndex) =>
+  new Map(moduleIndex.modules.map((module) => [module.path, module.keywords]));
+
+const buildEntryLookup = (entryMap?: EntryMap | null) => {
+  const map = new Map<string, EntryInfo[]>();
+  if (!entryMap) return map;
+  for (const moduleEntry of entryMap.modules) {
+    map.set(moduleEntry.path, moduleEntry.entries ?? []);
+  }
+  return map;
+};
+
 const modulePathSet = (modules: ModuleInfo[]) =>
   new Set(modules.map((module) => normalizePosixPath(module.path)));
 
@@ -227,17 +254,71 @@ const logCommand = <T extends object>(
   console.log(JSON.stringify(payload, null, 2));
 };
 
-const formatQueryResult = (result: QueryResult) => {
+const normalizeCount = (value: unknown, fallback: number) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.floor(parsed));
+};
+
+const hasFormatOverride = (argv: string[]) =>
+  argv.some((arg) => arg === "--format" || arg.startsWith("--format="));
+
+const groupEntriesByType = (entries: EntryInfo[]) => {
+  const sorted = entries.slice().sort((a, b) => {
+    const rankA = ENTRY_TYPE_RANK.get(a.type) ?? 999;
+    const rankB = ENTRY_TYPE_RANK.get(b.type) ?? 999;
+    if (rankA !== rankB) return rankA - rankB;
+    return compareNames(a.path, b.path);
+  });
+  const grouped: { type: string; paths: string[] }[] = [];
+  for (const entry of sorted) {
+    const current = grouped[grouped.length - 1];
+    if (!current || current.type !== entry.type) {
+      grouped.push({ type: entry.type, paths: [] });
+    }
+    grouped[grouped.length - 1].paths.push(entry.path || "unknown");
+  }
+  return grouped;
+};
+
+const formatQueryResult = (
+  result: QueryResult,
+  moduleIndex: ModuleIndex,
+  entryMap: EntryMap | null | undefined,
+  options: { maxKeywords: number; maxEntries: number }
+) => {
   const lines: string[] = [];
   lines.push(`Query: "${result.query}"`);
   lines.push(
     `Tokens: ${result.tokens.length > 0 ? result.tokens.join(", ") : "-"}`
   );
   lines.push(`Results: ${result.results.length}`);
+  const keywordMap = buildModuleKeywordMap(moduleIndex);
+  const entryLookup = buildEntryLookup(entryMap);
   for (const [index, entry] of result.results.entries()) {
     lines.push(
       `${index + 1}. ${entry.path} (${entry.name}) score=${entry.score} files=${entry.fileCount} lang=${entry.language}`
     );
+    const keywords = keywordMap.get(entry.path) ?? [];
+    const limitedKeywords =
+      options.maxKeywords > 0 ? keywords.slice(0, options.maxKeywords) : [];
+    lines.push(
+      `   keywords: ${limitedKeywords.length > 0 ? limitedKeywords.join(", ") : "-"}`
+    );
+    const entries = entryLookup.get(entry.path) ?? [];
+    if (entries.length === 0 || options.maxEntries === 0) {
+      lines.push("   entries: -");
+    } else {
+      lines.push("   entries:");
+      const groupedEntries = groupEntriesByType(entries);
+      for (const group of groupedEntries) {
+        const limitedPaths =
+          options.maxEntries > 0
+            ? group.paths.slice(0, options.maxEntries)
+            : [];
+        lines.push(`     - ${group.type}: ${limitedPaths.join(", ")}`);
+      }
+    }
     if (entry.matches.length > 0) {
       const matchText = entry.matches
         .map((match) => `${match.field}:${match.value}`)
@@ -454,6 +535,16 @@ program
   .description("Query an existing RepoMap output")
   .option("--limit <count>", "max results", "50")
   .option("--min-score <score>", "minimum score", "1")
+  .option(
+    "--max-keywords <count>",
+    "max keywords per module in human output",
+    String(DEFAULT_QUERY_MAX_KEYWORDS)
+  )
+  .option(
+    "--max-entries <count>",
+    "max entry paths per entry type in human output",
+    String(DEFAULT_QUERY_MAX_ENTRIES)
+  )
   .action((text, _options, command) => {
     const queryText = String(text ?? "").trim();
     if (!queryText) {
@@ -479,6 +570,14 @@ program
     const entryMap = readEntryMapFile(outDir);
     const maxResults = Number(options.limit ?? "50");
     const minScore = Number(options.minScore ?? "1");
+    const maxKeywords = normalizeCount(
+      options.maxKeywords,
+      DEFAULT_QUERY_MAX_KEYWORDS
+    );
+    const maxEntries = normalizeCount(
+      options.maxEntries,
+      DEFAULT_QUERY_MAX_ENTRIES
+    );
     const result = queryModules({
       query: queryText,
       moduleIndex,
@@ -491,12 +590,22 @@ program
         : 1
     });
 
-    if (String(options.format).toLowerCase() === "json") {
+    const formatValue = String(options.format ?? "json").toLowerCase();
+    const outputFormat = hasFormatOverride(process.argv)
+      ? formatValue
+      : "human";
+
+    if (outputFormat === "json") {
       console.log(JSON.stringify(result, null, 2));
       return;
     }
 
-    console.log(formatQueryResult(result));
+    console.log(
+      formatQueryResult(result, moduleIndex, entryMap, {
+        maxKeywords,
+        maxEntries
+      })
+    );
   });
 
 program.showHelpAfterError();

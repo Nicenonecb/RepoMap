@@ -34,10 +34,12 @@ node packages/cli/dist/index.js query "refresh token" --out .repomap
 Global options:
 
 - `--out <path>` output directory (default `.repomap`)
-- `--format <name>` output format (`json` or `human`)
+- `--format <name>` output format (`json` or `human`, query defaults to `human`)
 - `--ignore <pattern>` ignore pattern (repeatable)
 - `--limit <count>` max query results
 - `--min-score <score>` minimum query score
+- `--max-keywords <count>` max keywords per module in human query output
+- `--max-entries <count>` max entry paths per entry type in human query output
 
 ## Outputs
 
