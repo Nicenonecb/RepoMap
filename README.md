@@ -18,27 +18,19 @@ Large repositories (100k-1M+ LOC) expose bottlenecks for AI and developers:
 RepoMap provides an engineering-grade, incremental "repo map" as baseline infrastructure
 before code modification.
 
-## Goals
+## What RepoMap Helps You Do
 
-- Generate a structured map for large repositories
-- Serve as a baseline for AI/agents before code changes
-- Support incremental updates for evolving repos
-- Produce outputs readable by humans and consumable by AI
+- Build a consistent, reproducible structural map for large repositories
+- Find likely modules and entry points before editing
+- Keep maps up to date with incremental runs
+- Produce outputs that humans can read and tools can consume
 
-## Non-Goals
+## Who It Is For
 
-- No automatic code changes
-- No automatic PRs/commits
-- No full semantic understanding (RepoMap is not an LLM)
-- Not a replacement for IDE/LSP
-- No built-in full vector RAG system (can integrate externally)
-
-## Target Users
-
-1. Engineers using Codex / Claude Code / AI agents
-2. Teams maintaining mid-to-large monorepos
-3. Platform developers building prd2code / agent workflows
-4. CI or automation systems (read-only runs)
+1. Engineers using Codex / Claude Code / AI agents to work in large codebases
+2. Teams maintaining mid-to-large monorepos and shared platforms
+3. Platform developers building prd2code or agent workflows
+4. CI or automation systems running read-only analysis
 
 ## Features
 
